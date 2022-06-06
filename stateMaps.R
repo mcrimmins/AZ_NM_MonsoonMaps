@@ -42,8 +42,9 @@ dateRangeStart="2021-06-15"
 dateRangeEnd="2021-09-30" ### SET FOR TESTING
 
 # # AUTOMATIC ESCAPE OUTSIDE OF OFFICIAL MONSOON SEASON
+# dateRangeStart=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-15")
 # dateRangeEnd=as.Date(format(as.POSIXct(Sys.Date()),usetz=TRUE, tz="Etc/GMT+7")) # date on local time zone
-# if(dateRangeEnd<"2021-06-16" | dateRangeEnd>="2021-10-01"){
+# if(dateRangeEnd<paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-16") | dateRangeEnd>=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-10-01")){
 #   stop()
 # }
 # ####
@@ -280,7 +281,7 @@ for(k in 1:2){
       #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
       #                     name="inches", limits=c(0,20),oob=squish)+
       
-      scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+      scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                            name="inches", limits=c(0,20),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
       guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
       
@@ -305,7 +306,7 @@ for(k in 1:2){
     
     p<-p+geom_path(data = tribes_df, 
                    aes(x = long, y = lat, group = group),
-                   color = 'azure4', size = .2)
+                   color = 'azure4', size = .25)
     
     p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                     shape = 20)
@@ -356,7 +357,7 @@ for(k in 1:2){
       #scale_fill_gradient2(low = 'white', high = 'blue') +
       #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
       #                     name="inches", limits=c(0,20),oob=squish)+
-      scale_fill_manual(values = precipCols, na.value="darkgoldenrod3",name="inches",labels=precLabs)+
+      scale_fill_manual(values = precipCols, na.value="burlywood4",name="inches",labels=precLabs)+
       #guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
       
       coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
@@ -376,7 +377,7 @@ for(k in 1:2){
         
     p<-p+geom_path(data = tribes_df, 
                    aes(x = long, y = lat, group = group),
-                   color = 'azure4', size = .2)
+                   color = 'azure4', size = .25)
     
     p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                     shape = 20)
@@ -427,7 +428,7 @@ for(k in 1:2){
       #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
       #                     name="inches", limits=c(0,20),oob=squish)+
       
-      scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+      scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                            name="% of avg", limits=c(0,400),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
       guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
       
@@ -448,7 +449,7 @@ for(k in 1:2){
         
     p<-p+geom_path(data = tribes_df, 
                    aes(x = long, y = lat, group = group),
-                   color = 'azure4', size = .2)
+                   color = 'azure4', size = .25)
     
     p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                     shape = 20)
@@ -497,7 +498,7 @@ for(k in 1:2){
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
         
-        scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+        scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                              name="%", limits=c(0,75),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
@@ -518,7 +519,7 @@ for(k in 1:2){
             
       p<-p+geom_path(data = tribes_df, 
                      aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .2)
+                     color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -568,7 +569,7 @@ for(k in 1:2){
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
         
-        scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+        scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                              name="in/day", limits=c(0,1.5),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
@@ -589,7 +590,7 @@ for(k in 1:2){
            
       p<-p+geom_path(data = tribes_df, 
                      aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .2)
+                     color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -640,7 +641,7 @@ for(k in 1:2){
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
         
-        scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+        scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                              name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
@@ -661,7 +662,7 @@ for(k in 1:2){
             
       p<-p+geom_path(data = tribes_df, 
                      aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .2)
+                     color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -712,7 +713,7 @@ for(k in 1:2){
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
         
-        scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+        scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                              name="days", limits=c(0,30),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 30, raster = FALSE))+
         
@@ -733,7 +734,7 @@ for(k in 1:2){
             
       p<-p+geom_path(data = tribes_df, 
                      aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .2)
+                     color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -784,7 +785,7 @@ for(k in 1:2){
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
         
-        scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+        scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                              name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
@@ -806,7 +807,7 @@ for(k in 1:2){
             
       p<-p+geom_path(data = tribes_df, 
                      aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .2)
+                     color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -857,7 +858,7 @@ for(k in 1:2){
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
         facet_wrap(~ variable) +
-        scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+        scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                              name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
@@ -937,7 +938,7 @@ for(k in 1:2){
           #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
           #                     name="inches", limits=c(0,20),oob=squish)+
           
-          scale_fill_gradientn(colours = precipCols, na.value="darkgoldenrod3", 
+          scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                                name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
           guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
           
@@ -947,7 +948,7 @@ for(k in 1:2){
         p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
           #scale_x_continuous(breaks = c(-120,-140))+
           #ggtitle("Daily Total Precip (inches) - PRISM")+
-          ggtitle(paste0("Total Precipitation (in.): ",allDates[length(allDates)]))+
+          ggtitle(paste0("Total Precipitation (in.): ",allDates[i]))+
           labs(caption=paste0("Plot created: ",format(Sys.time(), "%Y-%m-%d"),
                               "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
           theme(plot.title=element_text(size=14, face = "bold"),
@@ -959,7 +960,7 @@ for(k in 1:2){
               
         p<-p+geom_path(data = tribes_df, 
                        aes(x = long, y = lat, group = group),
-                       color = 'azure4', size = .2)
+                       color = 'azure4', size = .25)
         
         p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                         shape = 20)
@@ -972,7 +973,7 @@ for(k in 1:2){
                           color = 'black', size = .25)
         
         # write out file
-        dayFileName<-paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/daily/",stateAbb[k],"_Monsoon_Precip_",allDates[i],".png")
+        dayFileName<-paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/daily_",stateAbb[k],"/",stateAbb[k],"_Monsoon_Precip_",allDates[i],".png")
         png(dayFileName, width = 8, height = 8, units = "in", res = 300L)
         #grid.newpage()
         print(p, newpage = FALSE)
@@ -1000,10 +1001,10 @@ for(k in 1:2){
       
       # create Rmarkdown html of daily maps
       #file.remove("/home/crimmins/RProjects/ClimPlot/monsoonMaps/dailyPrecip.html")
-      render(paste0('/home/crimmins/RProjects/StateMonsoonMaps/',stateAbb[k],'_createThumbsHTML.Rmd'), output_file='dailyPrecip.html',
+      render(paste0('/home/crimmins/RProjects/StateMonsoonMaps/',stateAbb[k],'_createThumbsHTML.Rmd'), output_file=paste0('dailyPrecip_',stateAbb[k],'.html'),
              output_dir=paste0('/home/crimmins/RProjects/StateMonsoonMaps/maps/',stateAbb[k],"/"), clean=TRUE)
-      plots <- list.files(paste0('/home/crimmins/RProjects/StateMonsoonMaps/maps/',stateAbb[k],"/daily"))
-      file.remove(paste0('/home/crimmins/RProjects/StateMonsoonMaps/maps/',stateAbb[k],"/daily/",plots))
+      plots <- list.files(paste0('/home/crimmins/RProjects/StateMonsoonMaps/maps/',stateAbb[k],"/daily_",stateAbb[k]))
+      file.remove(paste0('/home/crimmins/RProjects/StateMonsoonMaps/maps/',stateAbb[k],"/daily_",stateAbb[k],"/",plots))
       
       # create Website with markdown ----
       render(paste0('/home/crimmins/RProjects/StateMonsoonMaps/maps/',stateAbb[k],"/",stateAbb[k],'MonsoonTemplate.Rmd'), output_file=paste0(tolower(stateAbb[k]),'_monsoon.html'),
@@ -1013,6 +1014,7 @@ for(k in 1:2){
 }
   
   
-  
+# push bullet notify
+  source('/home/crimmins/RProjects/StateMonsoonMaps/pushNotify.R')
   
   
