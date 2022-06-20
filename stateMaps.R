@@ -38,15 +38,15 @@ file.remove(f)
 #dateRangeEnd="2019-09-30"
 
 # auto date range...start with 6-15 and run on 6-17 to get two days of data, end on 10/1
-dateRangeStart="2021-06-15"
-dateRangeEnd="2021-09-30" ### SET FOR TESTING
+#dateRangeStart="2021-06-15"
+#dateRangeEnd="2021-09-30" ### SET FOR TESTING
 
 # # AUTOMATIC ESCAPE OUTSIDE OF OFFICIAL MONSOON SEASON
-# dateRangeStart=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-15")
-# dateRangeEnd=as.Date(format(as.POSIXct(Sys.Date()),usetz=TRUE, tz="Etc/GMT+7")) # date on local time zone
-# if(dateRangeEnd<paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-16") | dateRangeEnd>=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-10-01")){
-#   stop()
-# }
+ dateRangeStart=as.Date(paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-15"))
+ dateRangeEnd=as.Date(format(as.POSIXct(Sys.time()),usetz=TRUE, tz="America/Phoenix")) # date on local time zone
+ if(dateRangeEnd<paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-16") | dateRangeEnd>=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-10-01")){
+   stop()
+ }
 # ####
 
 
@@ -345,14 +345,21 @@ for(k in 1:2){
     precipCols<-c("#ADEBFF","#4DBEEE","#0101FF","#01FF01","#01CC01","#017F01",
                                  "#FFFF01","#FFD701","#FF9901","#FF0101","#CC0101","#A2142F",
                                  "#FF01FF","#BF01BF","#FFFFFF")
-    precBreaks<-c(0.01,0.5,1.0,1.5,2.0,3.0,4.0,5.0,6.0,8.0,10,12,15,Inf)
+    precBreaks<-c(0.00000001,0.5,1.0,1.5,2.0,3.0,4.0,5.0,6.0,8.0,10,12,15,Inf)
     #precLabs<-as.character(seq(0,20,2))
     #precLabs[11]<-">20"
     #precLabs[1]<-"0.01"
     #precBreaksmin<-seq(1,19,2)
     precLabs<-c("0.01-0.5","0.5-1","1-1.5","1.5-2","2-3","3-4","4-5","5-6","6-8","8-10","10-12","12-15",">15","NA")
     
-    
+    # adjust colorramp based on max values in raster
+    # fixes last label in colormap
+    precRng<-c(0.5,1,1.5,2,3,4,5,6,8,10,12,15,Inf)
+      preIdx<-min(which(precRng>=max(values(totalPrecipAll), na.rm = TRUE)))
+      #precBreaks<-precBreaks[1:preIdx+1]
+      #precipCols<-precipCols[c(1:preIdx,15)]
+      precLabs<-precLabs[c(1:preIdx,14)]
+      
     p<-gplot(totalPrecipAll) + geom_tile(aes(fill = cut(value, precBreaks, right=FALSE))) +
       #scale_fill_gradient2(low = 'white', high = 'blue') +
       #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
