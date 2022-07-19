@@ -354,6 +354,86 @@ for(l in 2017:2021){
         image_write(final_plot, paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip.png"))
         #####
         
+        # #####
+        # # LONG-TERM average precipitation map (normals, needs updating every 10 years)
+        # 
+        # # LONG-TERM average precipitation map (normals, needs updating every 10 years) -----
+        # # colorramp for total precip
+        # precipCols<-colorRampPalette(c("lightblue", "dodgerblue3", "palegreen","green4","salmon","orangered3",
+        #                                "lightgoldenrod1","orange2","plum2","purple"))(50)
+        # precBreaks<-seq(0,20,2)
+        # precLabs<-as.character(seq(0,20,2))
+        # precLabs[11]<-">20"
+        # precLabs[1]<-"0.01"
+        # #precBreaksmin<-seq(1,19,2)
+        # 
+        # #theme_set(theme_bw())
+        # 
+        # p<-gplot(normal) + geom_tile(aes(fill = value)) +
+        #   #scale_fill_gradient2(low = 'white', high = 'blue') +
+        #   #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
+        #   #                     name="inches", limits=c(0,20),oob=squish)+
+        #   
+        #   scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
+        #                        name="inches", limits=c(0,20),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
+        #   guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
+        #   
+        #   coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+        #   xlab("Longitude") + ylab("Latitude") 
+        # 
+        # p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
+        #   #scale_x_continuous(breaks = c(-120,-140))+
+        #   #ggtitle("Daily Total Precip (inches) - PRISM")+
+        #   ggtitle(paste0("Average Total Precipitation (in): June 15th-Sept 30th (1991-2020)"))+
+        #   labs(caption=paste0("Plot created: ",format(Sys.time(), "%Y-%m-%d"),
+        #                       "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
+        #   theme(plot.title=element_text(size=14, face = "bold"))
+        # 
+        # # p<-p+geom_path(data = states, 
+        # #                aes(x = X, y = Y, group = region),
+        # #                color = 'black', size = 1)
+        # 
+        # p<-p+geom_path(data = all_states2, 
+        #                aes(x = long, y = lat, group = region),
+        #                color = 'black', size = 1)
+        # 
+        # p<-p+geom_path(data = tribes_df, 
+        #                aes(x = long, y = lat, group = group),
+        #                color = 'azure4', size = .25)
+        # 
+        # p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
+        #                 shape = 20)
+        # 
+        # p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
+        #                size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
+        # 
+        # p<-p+geom_polygon(data = goc, 
+        #                   aes(x = long, y = lat, group = group), fill="powderblue",
+        #                   color = 'black', size = .25)
+        # 
+        # # write out file
+        # jpeg(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/avg_",stateAbb[k],"_total_precip2.jpg"),
+        #     width = 8, height = 8, units = "in", res = 300L)
+        # #grid.newpage()
+        # print(p, newpage = FALSE)
+        # dev.off()
+        # 
+        # # add logos
+        # # Call back the plot
+        # plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/avg_",stateAbb[k],"_total_precip2.jpg"))
+        # # And bring in a logo
+        # #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
+        # logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+        # logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
+        # # Stack them on top of each other
+        # #final_plot <- image_append((c(plot, logo)), stack = TRUE)
+        # #final_plot <- image_mosaic((c(plot, logo)))
+        # final_plot <- image_composite(plot, logo, offset = "+110+2150")
+        # # And overwrite the plot without a logo
+        # image_write(final_plot, paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/avg_",stateAbb[k],"_total_precip2.jpg"))
+        #####
+        
+        
         # TOTAL PRECIP CATEGORICAL COLORS-----
         # colorramp for total precip
         precipCols<-c("#ADEBFF","#4DBEEE","#0101FF","#01FF01","#01CC01","#017F01",
