@@ -29,7 +29,7 @@ library(rmarkdown)
 library(knitr)
 library(rmdformats)
 
-for(l in 2017:2021){
+for(l in 2022:2022){
 
 
     # clean out netcdf dir
