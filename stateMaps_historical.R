@@ -29,7 +29,7 @@ library(rmarkdown)
 library(knitr)
 library(rmdformats)
 
-for(l in 2022:2022){
+for(l in 2023:2023){
 
 
     # clean out netcdf dir
@@ -85,10 +85,14 @@ for(l in 2022:2022){
     
     #####
     # download daily netcdf files from NOAA
+    # changed webservice in 2024 https://water.noaa.gov/about/precipitation-data-access
     ahpsStack<-stack()
     for(i in 1:length(allDates)){
       #build URL
-      URL<-paste0("https://water.weather.gov/precip/downloads/",
+      # URL<-paste0("https://water.weather.gov/precip/downloads/",
+      #             format(allDates[i],"%Y"),"/",format(allDates[i],"%m"),"/",format(allDates[i],"%d"),
+      #             "/nws_precip_1day_",format(allDates[i],"%Y%m%d"),"_conus.nc")
+      URL<-paste0("https://water.noaa.gov/resources/downloads/precip/stageIV/",
                   format(allDates[i],"%Y"),"/",format(allDates[i],"%m"),"/",format(allDates[i],"%d"),
                   "/nws_precip_1day_",format(allDates[i],"%Y%m%d"),"_conus.nc")
       download.file(URL, destfile = paste0("/home/crimmins/RProjects/StateMonsoonMaps/temp/",allDates[i],".nc"), method="curl")
