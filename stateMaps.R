@@ -2,6 +2,9 @@
 # adapted from plotMonsoonPRISM.R
 # Get Gridded data from ACIS
 # MAC 07/22/2021
+#####
+# updated to use sf instead of rgdal, 04/01/2025
+#####
 
 library(RCurl)
 library(jsonlite)
@@ -14,7 +17,7 @@ library(raster)
 library(rasterVis)
 library(PBSmapping)
 library(Hmisc)
-library(rgdal)
+#library(rgdal)
 library(readr)
 library(magick)
 
@@ -26,6 +29,10 @@ library(rmarkdown)
 library(knitr)
 library(rmdformats)
 library(viridis)
+library(sf)
+
+library(tidyr)
+library(dplyr)
 
 # clean out netcdf dir
 f <- list.files("/home/crimmins/RProjects/StateMonsoonMaps/temp", include.dirs = F, full.names = T, recursive = F)
@@ -39,15 +46,15 @@ file.remove(f)
 #dateRangeEnd="2019-09-30"
 
 # auto date range...start with 6-15 and run on 6-17 to get two days of data, end on 10/1
-#dateRangeStart="2021-06-15"
-#dateRangeEnd="2021-09-30" ### SET FOR TESTING
+dateRangeStart="2024-06-15"
+dateRangeEnd="2024-09-30" ### SET FOR TESTING
 
 # # AUTOMATIC ESCAPE OUTSIDE OF OFFICIAL MONSOON SEASON
- dateRangeStart=as.Date(paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-15"))
- dateRangeEnd=as.Date(format(as.POSIXct(Sys.time()),usetz=TRUE, tz="America/Phoenix")) # date on local time zone
- if(dateRangeEnd<paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-16") | dateRangeEnd>=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-10-01")){
-   stop()
- }
+ # dateRangeStart=as.Date(paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-15"))
+ # dateRangeEnd=as.Date(format(as.POSIXct(Sys.time()),usetz=TRUE, tz="America/Phoenix")) # date on local time zone
+ # if(dateRangeEnd<paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-16") | dateRangeEnd>=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-10-01")){
+ #   stop()
+ # }
 # ####
 
 
@@ -64,15 +71,24 @@ allDates<-seq(as.Date(dateRangeStart), as.Date(dateRangeEnd),1)
 # get shapefiles
 #all_states <- map_data("state")
 #all_counties<-map_data("county")
-tribes <- readOGR("/home/crimmins/RProjects/ClimPlot/tribes", "indlanp020")
-# load cities
-SWCities <- read_csv("/home/crimmins/RProjects/ClimPlot/SWCities.csv")
-# MX shapefile
-#countries<-map_data("world")
-#countries<-subset(countries, region %in% c("Mexico"))
-goc <- readOGR(dsn="/home/crimmins/RProjects/StateMonsoonMaps/shps", layer="goc")
-goc <- fortify(goc)
+# tribes <- readOGR("/home/crimmins/RProjects/ClimPlot/tribes", "indlanp020")
+# # load cities
+# SWCities <- read_csv("/home/crimmins/RProjects/ClimPlot/SWCities.csv")
+# # MX shapefile
+# #countries<-map_data("world")
+# #countries<-subset(countries, region %in% c("Mexico"))
+# goc <- readOGR(dsn="/home/crimmins/RProjects/StateMonsoonMaps/shps", layer="goc")
+# goc <- fortify(goc)
 
+ ##### NEW SF CODE
+ tribes <- st_read("/home/crimmins/RProjects/StateMonsoonMaps/shps/tribes", "indlanp020")
+ # load cities
+ SWCities <- read_csv("/home/crimmins/RProjects/StateMonsoonMaps/SWCities.csv")
+ goc <- st_read(dsn="/home/crimmins/RProjects/StateMonsoonMaps/shps", layer="goc")
+ st_crs(goc) <- 4326  # WGS84
+ ##### 
+ 
+ 
 #####
 # download daily netcdf files from NOAA
 # changed webservice in 2024 https://water.noaa.gov/about/precipitation-data-access
@@ -143,7 +159,7 @@ for(k in 1:2){
     totalPrecipAll_w0[totalPrecipAll_w0 < 0]<- NA
     
     # percent of average
-    JJASppt<-stack("/home/crimmins/RProjects/ClimPlot/PRISM/JJASppt.grd")
+    JJASppt<-stack("/home/crimmins/RProjects/StateMonsoonMaps/JJASppt.grd")
     JJASppt<-JJASppt/25.4
     moStack<-as.numeric(format(allDates[length(allDates)], format='%m'))-5
     
@@ -183,7 +199,7 @@ for(k in 1:2){
     for(i in 2:nlayers(gridStack)){
       totalPrecip<-calc(gridStack[[1:i]], sum, na.rm=TRUE)
       # percent of average
-      JJASppt<-stack("/home/crimmins/RProjects/ClimPlot/PRISM/JJASppt.grd")
+      JJASppt<-stack("/home/crimmins/RProjects/StateMonsoonMaps/JJASppt.grd")
       JJASppt<-JJASppt/25.4
       moStack<-as.numeric(format(allDates[i], format='%m'))-5
       
@@ -242,7 +258,7 @@ for(k in 1:2){
     # Call back the plot
     plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_Anomaly_TS.png"))
     # And bring in a logo
-    logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+    logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
     logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
     # Stack them on top of each other
     #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -265,7 +281,7 @@ for(k in 1:2){
     colnames(all_counties)<-c("X","Y","PID","POS","region","subregion")
     all_states = clipPolys(all_counties, xlim=xlim,ylim=ylim, keepExtra=TRUE)
     # tribal boundaries
-    tribes_df <- fortify(tribes)
+    #tribes_df <- fortify(tribes)
     #colnames(tribes_df)<-c("X","Y","POS","hole","piece","id","PID")
     #tribes_df = clipPolys(tribes_df, xlim=xlim,ylim=ylim, keepExtra=TRUE)
    
@@ -281,7 +297,13 @@ for(k in 1:2){
     
     #theme_set(theme_bw())
     
-    p<-gplot(totalPrecipAll) + geom_tile(aes(fill = value)) +
+    # Convert raster to dataframe for ggplot
+    prec_df <- as.data.frame(totalPrecipAll, xy = TRUE, na.rm = FALSE)
+    colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+    
+    p <- ggplot() +
+      geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+    #p<-gplot(totalPrecipAll) + geom_tile(aes(fill = value)) +
       #scale_fill_gradient2(low = 'white', high = 'blue') +
       #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
       #                     name="inches", limits=c(0,20),oob=squish)+
@@ -290,7 +312,7 @@ for(k in 1:2){
                            name="inches", limits=c(0,20),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
       guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
       
-      coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+      #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
       xlab("Longitude") + ylab("Latitude") 
     
     p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -309,9 +331,11 @@ for(k in 1:2){
                    aes(x = long, y = lat, group = region),
                    color = 'black', size = 1)
     
-    p<-p+geom_path(data = tribes_df, 
-                   aes(x = long, y = lat, group = group),
-                   color = 'azure4', size = .25)
+    # p<-p+geom_path(data = tribes_df, 
+    #                aes(x = long, y = lat, group = group),
+    #                color = 'azure4', size = .25)
+    
+    p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
     
     p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                     shape = 20)
@@ -319,12 +343,13 @@ for(k in 1:2){
     p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                    size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
     
-    p<-p+geom_polygon(data = goc, 
-                      aes(x = long, y = lat, group = group), fill="powderblue",
-                      color = 'black', size = .25)
+    # p<-p+geom_polygon(data = goc, 
+    #                   aes(x = long, y = lat, group = group), fill="powderblue",
+    #                   color = 'black', size = .25)
+    
+    p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+      coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
   
-    
-    
     # write out file
     png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip.png"),
         width = 8, height = 8, units = "in", res = 300L)
@@ -337,7 +362,7 @@ for(k in 1:2){
     plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip.png"))
     # And bring in a logo
     #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-    logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+    logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
     logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
     # Stack them on top of each other
     #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -349,11 +374,17 @@ for(k in 1:2){
     
     ##### TOTAL PRECIP VIRIDIS
     
-    p<-gplot(totalPrecipAll) + geom_tile(aes(fill = value)) +
+    # Convert raster to dataframe for ggplot
+    prec_df <- as.data.frame(totalPrecipAll, xy = TRUE, na.rm = FALSE)
+    colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+    
+    p <- ggplot() +
+      geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+  #  p<-gplot(totalPrecipAll) + geom_tile(aes(fill = value)) +
       scale_fill_viridis(option="D",na.value="burlywood4", 
                          name="inches", limits=c(0,20),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL, direction=-1)+
       guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
-      coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+      #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
       xlab("Longitude") + ylab("Latitude") 
   
     p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -372,9 +403,11 @@ for(k in 1:2){
                    aes(x = long, y = lat, group = region),
                    color = 'black', size = 1)
     
-    p<-p+geom_path(data = tribes_df, 
-                   aes(x = long, y = lat, group = group),
-                   color = 'azure4', size = .25)
+    # p<-p+geom_path(data = tribes_df, 
+    #                aes(x = long, y = lat, group = group),
+    #                color = 'azure4', size = .25)
+    
+    p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
     
     p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                     shape = 20)
@@ -382,9 +415,12 @@ for(k in 1:2){
     p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                    size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
     
-    p<-p+geom_polygon(data = goc, 
-                      aes(x = long, y = lat, group = group), fill="powderblue",
-                      color = 'black', size = .25)
+    # p<-p+geom_polygon(data = goc, 
+    #                   aes(x = long, y = lat, group = group), fill="powderblue",
+    #                   color = 'black', size = .25)
+    
+    p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+      coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
     
     # write out file
     png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip_v.png"),
@@ -398,7 +434,7 @@ for(k in 1:2){
     plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip_v.png"))
     # And bring in a logo
     #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-    logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+    logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
     logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
     # Stack them on top of each other
     #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -429,14 +465,20 @@ for(k in 1:2){
       #precipCols<-precipCols[c(1:preIdx,15)]
       precLabs<-precLabs[c(1:preIdx,14)]
       
-    p<-gplot(totalPrecipAll) + geom_tile(aes(fill = cut(value, precBreaks, right=FALSE))) +
+      # Convert raster to dataframe for ggplot
+      prec_df <- as.data.frame(totalPrecipAll, xy = TRUE, na.rm = FALSE)
+      colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+      
+      p <- ggplot() +
+        geom_raster(data = prec_df, aes(x = x, y = y, fill = cut(value, precBreaks, right=FALSE))) +
+    #p<-gplot(totalPrecipAll) + geom_tile(aes(fill = cut(value, precBreaks, right=FALSE))) +
       #scale_fill_gradient2(low = 'white', high = 'blue') +
       #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
       #                     name="inches", limits=c(0,20),oob=squish)+
       scale_fill_manual(values = precipCols, na.value="burlywood4",name="inches",labels=precLabs)+
       #guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
       
-      coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+      #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
       xlab("Longitude") + ylab("Latitude") 
     
     p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -447,13 +489,19 @@ for(k in 1:2){
                           "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
       theme(plot.title=element_text(size=14, face = "bold"))
 
+    # p<-p+geom_path(data = states, 
+    #                aes(x = X, y = Y, group = region),
+    #                color = 'black', size = 1)
+    
     p<-p+geom_path(data = all_states2, 
                    aes(x = long, y = lat, group = region),
                    color = 'black', size = 1)
-        
-    p<-p+geom_path(data = tribes_df, 
-                   aes(x = long, y = lat, group = group),
-                   color = 'azure4', size = .25)
+    
+    # p<-p+geom_path(data = tribes_df, 
+    #                aes(x = long, y = lat, group = group),
+    #                color = 'azure4', size = .25)
+    
+    p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
     
     p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                     shape = 20)
@@ -461,9 +509,12 @@ for(k in 1:2){
     p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                    size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
     
-    p<-p+geom_polygon(data = goc, 
-                      aes(x = long, y = lat, group = group), fill="powderblue",
-                      color = 'black', size = .25)
+    # p<-p+geom_polygon(data = goc, 
+    #                   aes(x = long, y = lat, group = group), fill="powderblue",
+    #                   color = 'black', size = .25)
+    
+    p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+      coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
     
         # write out file
         png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecipCat.png"),
@@ -477,7 +528,7 @@ for(k in 1:2){
         plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecipCat.png"))
         # And bring in a logo
         #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-        logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+        logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
         logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # Stack them on top of each other
         #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -498,8 +549,14 @@ for(k in 1:2){
     precLabs[1]<-"0"
     #precBreaksmin<-seq(1,19,2)
     
+    # Convert raster to dataframe for ggplot
+    prec_df <- as.data.frame(percPrecip, xy = TRUE, na.rm = FALSE)
+    colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+    
+    p <- ggplot() +
+      geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
     #theme_set(theme_bw())
-    p<-gplot(percPrecip) + geom_tile(aes(fill = value)) +
+    #p<-gplot(percPrecip) + geom_tile(aes(fill = value)) +
       #scale_fill_gradient2(low = 'white', high = 'blue') +
       #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
       #                     name="inches", limits=c(0,20),oob=squish)+
@@ -508,7 +565,7 @@ for(k in 1:2){
                            name="% of avg", limits=c(0,400),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
       guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
       
-      coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+      #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
       xlab("Longitude") + ylab("Latitude") 
     
     p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -519,13 +576,19 @@ for(k in 1:2){
                           "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
       theme(plot.title=element_text(size=14, face = "bold"))
 
+    # p<-p+geom_path(data = states, 
+    #                aes(x = X, y = Y, group = region),
+    #                color = 'black', size = 1)
+    
     p<-p+geom_path(data = all_states2, 
                    aes(x = long, y = lat, group = region),
                    color = 'black', size = 1)
-        
-    p<-p+geom_path(data = tribes_df, 
-                   aes(x = long, y = lat, group = group),
-                   color = 'azure4', size = .25)
+    
+    # p<-p+geom_path(data = tribes_df, 
+    #                aes(x = long, y = lat, group = group),
+    #                color = 'azure4', size = .25)
+    
+    p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
     
     p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                     shape = 20)
@@ -533,9 +596,12 @@ for(k in 1:2){
     p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                    size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
     
-    p<-p+geom_polygon(data = goc, 
-                      aes(x = long, y = lat, group = group), fill="powderblue",
-                      color = 'black', size = .25)
+    # p<-p+geom_polygon(data = goc, 
+    #                   aes(x = long, y = lat, group = group), fill="powderblue",
+    #                   color = 'black', size = .25)
+    
+    p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+      coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
     
         # write out file
         png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercPrecip.png"),
@@ -549,7 +615,7 @@ for(k in 1:2){
         plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercPrecip.png"))
         # And bring in a logo
         #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-        logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+        logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
         logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # Stack them on top of each other
         #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -568,8 +634,14 @@ for(k in 1:2){
       precLabs[1]<-"0"
       #precBreaksmin<-seq(1,19,2)
       
+      # Convert raster to dataframe for ggplot
+      prec_df <- as.data.frame(percRainDays, xy = TRUE, na.rm = FALSE)
+      colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+      
+      p <- ggplot() +
+        geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
       #theme_set(theme_bw())
-      p<-gplot(percRainDays) + geom_tile(aes(fill = value)) +
+      #p<-gplot(percRainDays) + geom_tile(aes(fill = value)) +
         #scale_fill_gradient2(low = 'white', high = 'blue') +
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
@@ -578,7 +650,7 @@ for(k in 1:2){
                              name="%", limits=c(0,75),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
-        coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+        #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
         xlab("Longitude") + ylab("Latitude") 
       
       p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -589,13 +661,19 @@ for(k in 1:2){
                             "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
         theme(plot.title=element_text(size=14, face = "bold"))
 
+      # p<-p+geom_path(data = states, 
+      #                aes(x = X, y = Y, group = region),
+      #                color = 'black', size = 1)
+      
       p<-p+geom_path(data = all_states2, 
                      aes(x = long, y = lat, group = region),
                      color = 'black', size = 1)
-            
-      p<-p+geom_path(data = tribes_df, 
-                     aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .25)
+      
+      # p<-p+geom_path(data = tribes_df, 
+      #                aes(x = long, y = lat, group = group),
+      #                color = 'azure4', size = .25)
+      
+      p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -603,9 +681,12 @@ for(k in 1:2){
       p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                      size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
       
-      p<-p+geom_polygon(data = goc, 
-                        aes(x = long, y = lat, group = group), fill="powderblue",
-                        color = 'black', size = .25)
+      # p<-p+geom_polygon(data = goc, 
+      #                   aes(x = long, y = lat, group = group), fill="powderblue",
+      #                   color = 'black', size = .25)
+      
+      p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+        coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
       
           # write out file
           png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercentDays.png"),
@@ -619,7 +700,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercentDays.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -639,8 +720,14 @@ for(k in 1:2){
       precLabs[1]<-"0"
       #precBreaksmin<-seq(1,19,2)
       
+      # Convert raster to dataframe for ggplot
+      prec_df <- as.data.frame(sdii, xy = TRUE, na.rm = FALSE)
+      colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+      
+      p <- ggplot() +
+        geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
       #theme_set(theme_bw())
-      p<-gplot(sdii) + geom_tile(aes(fill = value)) +
+      #p<-gplot(sdii) + geom_tile(aes(fill = value)) +
         #scale_fill_gradient2(low = 'white', high = 'blue') +
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
@@ -649,7 +736,7 @@ for(k in 1:2){
                              name="in/day", limits=c(0,1.5),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
-        coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+        #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
         xlab("Longitude") + ylab("Latitude") 
       
       p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -660,13 +747,19 @@ for(k in 1:2){
                             "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
         theme(plot.title=element_text(size=14, face = "bold"))
  
+      # p<-p+geom_path(data = states, 
+      #                aes(x = X, y = Y, group = region),
+      #                color = 'black', size = 1)
+      
       p<-p+geom_path(data = all_states2, 
                      aes(x = long, y = lat, group = region),
                      color = 'black', size = 1)
-           
-      p<-p+geom_path(data = tribes_df, 
-                     aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .25)
+      
+      # p<-p+geom_path(data = tribes_df, 
+      #                aes(x = long, y = lat, group = group),
+      #                color = 'azure4', size = .25)
+      
+      p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -674,9 +767,12 @@ for(k in 1:2){
       p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                      size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
       
-      p<-p+geom_polygon(data = goc, 
-                        aes(x = long, y = lat, group = group), fill="powderblue",
-                        color = 'black', size = .25)
+      # p<-p+geom_polygon(data = goc, 
+      #                   aes(x = long, y = lat, group = group), fill="powderblue",
+      #                   color = 'black', size = .25)
+      
+      p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+        coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
       
           # write out file
           png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_IntensityIndex.png"),
@@ -690,7 +786,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_IntensityIndex.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -710,9 +806,13 @@ for(k in 1:2){
       precLabs[1]<-"0.01"
       #precBreaksmin<-seq(1,19,2)
       
-      #theme_set(theme_bw())
+      # Convert raster to dataframe for ggplot
+      prec_df <- as.data.frame(maxRain, xy = TRUE, na.rm = FALSE)
+      colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
       
-      p<-gplot(maxRain) + geom_tile(aes(fill = value)) +
+      p <- ggplot() +
+        geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+      #p<-gplot(maxRain) + geom_tile(aes(fill = value)) +
         #scale_fill_gradient2(low = 'white', high = 'blue') +
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
@@ -721,7 +821,7 @@ for(k in 1:2){
                              name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
-        coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+        #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
         xlab("Longitude") + ylab("Latitude") 
       
       p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -732,13 +832,19 @@ for(k in 1:2){
                             "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
         theme(plot.title=element_text(size=14, face = "bold"))
 
+      # p<-p+geom_path(data = states, 
+      #                aes(x = X, y = Y, group = region),
+      #                color = 'black', size = 1)
+      
       p<-p+geom_path(data = all_states2, 
                      aes(x = long, y = lat, group = region),
                      color = 'black', size = 1)
-            
-      p<-p+geom_path(data = tribes_df, 
-                     aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .25)
+      
+      # p<-p+geom_path(data = tribes_df, 
+      #                aes(x = long, y = lat, group = group),
+      #                color = 'azure4', size = .25)
+      
+      p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -746,9 +852,12 @@ for(k in 1:2){
       p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                      size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
       
-      p<-p+geom_polygon(data = goc, 
-                        aes(x = long, y = lat, group = group), fill="powderblue",
-                        color = 'black', size = .25)
+      # p<-p+geom_polygon(data = goc, 
+      #                   aes(x = long, y = lat, group = group), fill="powderblue",
+      #                   color = 'black', size = .25)
+      
+      p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+        coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
       
           # write out file
           png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip.png"),
@@ -762,7 +871,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -785,7 +894,13 @@ for(k in 1:2){
           
           #theme_set(theme_bw())
           
-          p<-gplot(maxRain) + geom_tile(aes(fill = value)) +
+          # Convert raster to dataframe for ggplot
+          prec_df <- as.data.frame(maxRain, xy = TRUE, na.rm = FALSE)
+          colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+          
+          p <- ggplot() +
+            geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+          #p<-gplot(maxRain) + geom_tile(aes(fill = value)) +
             #scale_fill_gradient2(low = 'white', high = 'blue') +
             #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
             #                     name="inches", limits=c(0,20),oob=squish)+
@@ -796,7 +911,7 @@ for(k in 1:2){
                                name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL, direction=-1)+
             guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
             
-            coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+            #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
             xlab("Longitude") + ylab("Latitude") 
           
           p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -807,13 +922,19 @@ for(k in 1:2){
                                 "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
             theme(plot.title=element_text(size=14, face = "bold"))
           
+          # p<-p+geom_path(data = states, 
+          #                aes(x = X, y = Y, group = region),
+          #                color = 'black', size = 1)
+          
           p<-p+geom_path(data = all_states2, 
                          aes(x = long, y = lat, group = region),
                          color = 'black', size = 1)
           
-          p<-p+geom_path(data = tribes_df, 
-                         aes(x = long, y = lat, group = group),
-                         color = 'azure4', size = .25)
+          # p<-p+geom_path(data = tribes_df, 
+          #                aes(x = long, y = lat, group = group),
+          #                color = 'azure4', size = .25)
+          
+          p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
           
           p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                           shape = 20)
@@ -821,9 +942,12 @@ for(k in 1:2){
           p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                          size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
           
-          p<-p+geom_polygon(data = goc, 
-                            aes(x = long, y = lat, group = group), fill="powderblue",
-                            color = 'black', size = .25)
+          # p<-p+geom_polygon(data = goc, 
+          #                   aes(x = long, y = lat, group = group), fill="powderblue",
+          #                   color = 'black', size = .25)
+          
+          p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+            coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
           
           # write out file
           png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip_v.png"),
@@ -837,7 +961,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip_v.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -845,11 +969,8 @@ for(k in 1:2){
           final_plot <- image_composite(plot, logo, offset = "+110+2150")
           # And overwrite the plot without a logo
           image_write(final_plot, paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip_v.png"))
-          
-          
+        
       #####    
-          
-          
           
           
       # DAYS SINCE MAP ----
@@ -861,9 +982,13 @@ for(k in 1:2){
       precLabs[1]<-"0"
       #precBreaksmin<-seq(1,19,2)
       
-      #theme_set(theme_bw())
+      # Convert raster to dataframe for ggplot
+      prec_df <- as.data.frame(daysSince, xy = TRUE, na.rm = FALSE)
+      colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
       
-      p<-gplot(daysSince) + geom_tile(aes(fill = value)) +
+      p <- ggplot() +
+        geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+      #p<-gplot(daysSince) + geom_tile(aes(fill = value)) +
         #scale_fill_gradient2(low = 'white', high = 'blue') +
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
@@ -872,7 +997,7 @@ for(k in 1:2){
                              name="days", limits=c(0,30),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 30, raster = FALSE))+
         
-        coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+        #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
         xlab("Longitude") + ylab("Latitude") 
       
       p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -883,13 +1008,19 @@ for(k in 1:2){
                             "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
         theme(plot.title=element_text(size=14, face = "bold"))
 
+      # p<-p+geom_path(data = states, 
+      #                aes(x = X, y = Y, group = region),
+      #                color = 'black', size = 1)
+      
       p<-p+geom_path(data = all_states2, 
                      aes(x = long, y = lat, group = region),
                      color = 'black', size = 1)
-            
-      p<-p+geom_path(data = tribes_df, 
-                     aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .25)
+      
+      # p<-p+geom_path(data = tribes_df, 
+      #                aes(x = long, y = lat, group = group),
+      #                color = 'azure4', size = .25)
+      
+      p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -897,9 +1028,12 @@ for(k in 1:2){
       p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                      size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
       
-      p<-p+geom_polygon(data = goc, 
-                        aes(x = long, y = lat, group = group), fill="powderblue",
-                        color = 'black', size = .25)
+      # p<-p+geom_polygon(data = goc, 
+      #                   aes(x = long, y = lat, group = group), fill="powderblue",
+      #                   color = 'black', size = .25)
+      
+      p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+        coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
       
           # write out file
           png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_DaysSince.png"),
@@ -913,7 +1047,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_DaysSince.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -933,9 +1067,13 @@ for(k in 1:2){
       precLabs[1]<-"0.01"
       #precBreaksmin<-seq(1,19,2)
       
-      #theme_set(theme_bw())
+      # Convert raster to dataframe for ggplot
+      prec_df <- as.data.frame(gridStack[[max(nlayers(gridStack))]], xy = TRUE, na.rm = FALSE)
+      colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
       
-      p<-gplot(gridStack[[max(nlayers(gridStack))]]) + geom_tile(aes(fill = value)) +
+      p <- ggplot() +
+        geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+      #p<-gplot(gridStack[[max(nlayers(gridStack))]]) + geom_tile(aes(fill = value)) +
         #scale_fill_gradient2(low = 'white', high = 'blue') +
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
@@ -944,7 +1082,7 @@ for(k in 1:2){
                              name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
-        coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+        #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
         xlab("Longitude") + ylab("Latitude") 
       
       p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -956,13 +1094,19 @@ for(k in 1:2){
         theme(plot.title=element_text(size=14, face = "bold"),
               panel.background = element_rect(fill = "powderblue"))
 
+      # p<-p+geom_path(data = states, 
+      #                aes(x = X, y = Y, group = region),
+      #                color = 'black', size = 1)
+      
       p<-p+geom_path(data = all_states2, 
                      aes(x = long, y = lat, group = region),
                      color = 'black', size = 1)
-            
-      p<-p+geom_path(data = tribes_df, 
-                     aes(x = long, y = lat, group = group),
-                     color = 'azure4', size = .25)
+      
+      # p<-p+geom_path(data = tribes_df, 
+      #                aes(x = long, y = lat, group = group),
+      #                color = 'azure4', size = .25)
+      
+      p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
       
       p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                       shape = 20)
@@ -970,9 +1114,12 @@ for(k in 1:2){
       p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                      size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
       
-      p<-p+geom_polygon(data = goc, 
-                        aes(x = long, y = lat, group = group), fill="powderblue",
-                        color = 'black', size = .25)
+      # p<-p+geom_polygon(data = goc, 
+      #                   aes(x = long, y = lat, group = group), fill="powderblue",
+      #                   color = 'black', size = .25)
+      
+      p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+        coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
       
           # write out file
           png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_LatestDay.png"),
@@ -986,7 +1133,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_LatestDay.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1008,16 +1155,29 @@ for(k in 1:2){
       
       #theme_set(theme_bw())
       names(gridStack)<-format(allDates, format="%b-%d")
-      p<-gplot(gridStack) + geom_tile(aes(fill = value)) +
+      
+      # Convert raster to dataframe for ggplot
+      prec_df <- as.data.frame(gridStack, xy = TRUE, na.rm = FALSE)
+      # convert to long format
+      prec_df <- prec_df %>%
+        pivot_longer(
+          cols = starts_with("Jun."),
+          names_to = "date",
+          values_to = "value"
+        )
+      
+      p <- ggplot() +
+        geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+      #p<-gplot(gridStack) + geom_tile(aes(fill = value)) +
         #scale_fill_gradient2(low = 'white', high = 'blue') +
         #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
         #                     name="inches", limits=c(0,20),oob=squish)+
-        facet_wrap(~ variable) +
+        facet_wrap(~ date) +
         scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                              name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
         guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
         
-        coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+        #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
         xlab("Longitude") + ylab("Latitude") 
         
       p<-p +  geom_polygon( data=states, aes(x=X, y=Y, group = PID),colour="grey8", fill=NA, size=0.3 )+
@@ -1040,9 +1200,8 @@ for(k in 1:2){
       #                aes(x = long, y = lat, group = region),
       #                color = 'black', size = 1)
           
-       p<-p+geom_polygon(data = goc, 
-                        aes(x = long, y = lat, group = group), fill="powderblue",
-                        color = 'black', size = .25)
+      p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+        coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)   
       
           # write out file
           png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_AllDaysGrid.png"),
@@ -1056,7 +1215,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_AllDaysGrid.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1078,6 +1237,8 @@ for(k in 1:2){
       #   j=length(allDates)
       # }
       
+      gc()    
+          
       # colorramp for total precip
       precipCols<-colorRampPalette(c("lightblue", "dodgerblue3", "palegreen","green4","salmon","orangered3",
                                      "lightgoldenrod1","orange2","plum2","purple"))(50)
@@ -1088,7 +1249,14 @@ for(k in 1:2){
       #precBreaksmin<-seq(1,19,2)      
       # loop through days, change j to 1
       for(i in 1:length(allDates)){
-        p<-gplot(gridStack[[i]]) + geom_tile(aes(fill = value)) +
+
+        # Convert raster to dataframe for ggplot
+        prec_df <- as.data.frame(gridStack[[i]], xy = TRUE, na.rm = FALSE)
+        colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+        
+        p <- ggplot() +
+          geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+          #p<-gplot(gridStack[[i]]) + geom_tile(aes(fill = value)) +
           #scale_fill_gradient2(low = 'white', high = 'blue') +
           #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
           #                     name="inches", limits=c(0,20),oob=squish)+
@@ -1097,7 +1265,7 @@ for(k in 1:2){
                                name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
           guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
           
-          coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+          #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
           xlab("Longitude") + ylab("Latitude") 
         
         p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -1109,13 +1277,19 @@ for(k in 1:2){
           theme(plot.title=element_text(size=14, face = "bold"),
                 panel.background = element_rect(fill = "powderblue"))
   
+        # p<-p+geom_path(data = states, 
+        #                aes(x = X, y = Y, group = region),
+        #                color = 'black', size = 1)
+        
         p<-p+geom_path(data = all_states2, 
                        aes(x = long, y = lat, group = region),
                        color = 'black', size = 1)
-              
-        p<-p+geom_path(data = tribes_df, 
-                       aes(x = long, y = lat, group = group),
-                       color = 'azure4', size = .25)
+        
+        # p<-p+geom_path(data = tribes_df, 
+        #                aes(x = long, y = lat, group = group),
+        #                color = 'azure4', size = .25)
+        
+        p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
         
         p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                         shape = 20)
@@ -1123,13 +1297,16 @@ for(k in 1:2){
         p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                        size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
         
-        p<-p+geom_polygon(data = goc, 
-                          aes(x = long, y = lat, group = group), fill="powderblue",
-                          color = 'black', size = .25)
+        # p<-p+geom_polygon(data = goc, 
+        #                   aes(x = long, y = lat, group = group), fill="powderblue",
+        #                   color = 'black', size = .25)
+        
+        p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+          coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
         
         # write out file
         dayFileName<-paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/daily_",stateAbb[k],"/",stateAbb[k],"_Monsoon_Precip_",allDates[i],".png")
-        png(dayFileName, width = 8, height = 8, units = "in", res = 300L)
+        png(dayFileName, width = 8, height = 8, units = "in", res = 150L)
         #grid.newpage()
         print(p, newpage = FALSE)
         dev.off()
@@ -1139,7 +1316,7 @@ for(k in 1:2){
         plot <- image_read(dayFileName)
         # And bring in a logo
         #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-        logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+        logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
         logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # Stack them on top of each other
         #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1147,12 +1324,15 @@ for(k in 1:2){
         final_plot <- image_composite(plot, logo, offset = "+110+2150")
         # And overwrite the plot without a logo
         image_write(final_plot, dayFileName)
+        
+        gc()
       }
 
       
       # RMARKDOWN of DAILIES ----
       # DEAL WITH PANDOC ERROR
-      Sys.setenv(RSTUDIO_PANDOC="/usr/lib/rstudio-server/bin/pandoc")
+      #Sys.setenv(RSTUDIO_PANDOC="/usr/lib/rstudio-server/bin/pandoc")
+      Sys.setenv(RSTUDIO_PANDOC="/usr/bin/pandoc")
       
       # create Rmarkdown html of daily maps
       #file.remove("/home/crimmins/RProjects/ClimPlot/monsoonMaps/dailyPrecip.html")
@@ -1170,6 +1350,6 @@ for(k in 1:2){
   
   
 # push bullet notify
-  source('/home/crimmins/RProjects/StateMonsoonMaps/pushNotify.R')
+#  source('/home/crimmins/RProjects/StateMonsoonMaps/pushNotify.R')
   
   

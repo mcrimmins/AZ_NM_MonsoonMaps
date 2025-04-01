@@ -4,7 +4,9 @@
 # MAC 07/22/2021
 # PLOTS HISTORIC MAPS
 # adapted from stateMaps.R MAC 03/31/22
-
+#####
+# updated to use sf instead of rgdal, 04/01/2025
+#####
 
 library(RCurl)
 library(jsonlite)
@@ -17,7 +19,7 @@ library(raster)
 library(rasterVis)
 library(PBSmapping)
 library(Hmisc)
-library(rgdal)
+#library(rgdal)
 library(readr)
 library(magick)
 
@@ -28,8 +30,12 @@ library(magick)
 library(rmarkdown)
 library(knitr)
 library(rmdformats)
+library(sf)
 
-for(l in 2023:2023){
+library(tidyr)
+library(dplyr)
+
+for(l in 2024:2024){
 
 
     # clean out netcdf dir
@@ -72,16 +78,25 @@ for(l in 2023:2023){
     # allDates<-seq(as.Date(dateRangeStart), as.Date(dateRangeEnd),1)
     
     # get shapefiles
-    #all_states <- map_data("state")
-    #all_counties<-map_data("county")
-    tribes <- readOGR("/home/crimmins/RProjects/ClimPlot/tribes", "indlanp020")
+    # #all_states <- map_data("state")
+    # #all_counties<-map_data("county")
+    # tribes <- readOGR("/home/crimmins/RProjects/ClimPlot/tribes", "indlanp020")
+    # # load cities
+    # SWCities <- read_csv("/home/crimmins/RProjects/ClimPlot/SWCities.csv")
+    # # MX shapefile
+    # #countries<-map_data("world")
+    # #countries<-subset(countries, region %in% c("Mexico"))
+    # goc <- readOGR(dsn="/home/crimmins/RProjects/StateMonsoonMaps/shps", layer="goc")
+    # goc <- fortify(goc)
+    
+    ##### NEW SF CODE
+    tribes <- st_read("/home/crimmins/RProjects/StateMonsoonMaps/shps/tribes", "indlanp020")
     # load cities
-    SWCities <- read_csv("/home/crimmins/RProjects/ClimPlot/SWCities.csv")
-    # MX shapefile
-    #countries<-map_data("world")
-    #countries<-subset(countries, region %in% c("Mexico"))
-    goc <- readOGR(dsn="/home/crimmins/RProjects/StateMonsoonMaps/shps", layer="goc")
-    goc <- fortify(goc)
+    SWCities <- read_csv("/home/crimmins/RProjects/StateMonsoonMaps/SWCities.csv")
+    goc <- st_read(dsn="/home/crimmins/RProjects/StateMonsoonMaps/shps", layer="goc")
+    st_crs(goc) <- 4326  # WGS84
+    #####
+    
     
     #####
     # download daily netcdf files from NOAA
@@ -156,7 +171,7 @@ for(l in 2023:2023){
         totalPrecipAll_w0[totalPrecipAll_w0 < 0]<- NA
         
         # percent of average
-        JJASppt<-stack("/home/crimmins/RProjects/ClimPlot/PRISM/JJASppt.grd")
+        JJASppt<-stack("/home/crimmins/RProjects/StateMonsoonMaps/JJASppt.grd")
         JJASppt<-JJASppt/25.4
         moStack<-as.numeric(format(allDates[length(allDates)], format='%m'))-5
         
@@ -196,7 +211,7 @@ for(l in 2023:2023){
         for(i in 2:nlayers(gridStack)){
           totalPrecip<-calc(gridStack[[1:i]], sum, na.rm=TRUE)
           # percent of average
-          JJASppt<-stack("/home/crimmins/RProjects/ClimPlot/PRISM/JJASppt.grd")
+          JJASppt<-stack("/home/crimmins/RProjects/StateMonsoonMaps/JJASppt.grd")
           JJASppt<-JJASppt/25.4
           moStack<-as.numeric(format(allDates[i], format='%m'))-5
           
@@ -255,7 +270,7 @@ for(l in 2023:2023){
         # Call back the plot
         plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_Anomaly_TS.png"))
         # And bring in a logo
-        logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+        logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
         logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # Stack them on top of each other
         #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -294,16 +309,22 @@ for(l in 2023:2023){
         
         #theme_set(theme_bw())
         
-        p<-gplot(totalPrecipAll) + geom_tile(aes(fill = value)) +
+        # Convert raster to dataframe for ggplot
+        prec_df <- as.data.frame(totalPrecipAll, xy = TRUE, na.rm = FALSE)
+        colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+        
+        
+        #p<-gplot(totalPrecipAll) + geom_tile(aes(fill = value)) +
           #scale_fill_gradient2(low = 'white', high = 'blue') +
           #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
           #                     name="inches", limits=c(0,20),oob=squish)+
-          
+        
+        p <- ggplot() +
+          geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
           scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                                name="inches", limits=c(0,20),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
           guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
-          
-          coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+          #coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)+
           xlab("Longitude") + ylab("Latitude") 
         
         p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -322,9 +343,11 @@ for(l in 2023:2023){
                        aes(x = long, y = lat, group = region),
                        color = 'black', size = 1)
         
-        p<-p+geom_path(data = tribes_df, 
-                       aes(x = long, y = lat, group = group),
-                       color = 'azure4', size = .25)
+        # p<-p+geom_path(data = tribes_df, 
+        #                aes(x = long, y = lat, group = group),
+        #                color = 'azure4', size = .25)
+        
+        p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
         
         p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                         shape = 20)
@@ -332,9 +355,12 @@ for(l in 2023:2023){
         p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                        size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
         
-        p<-p+geom_polygon(data = goc, 
-                          aes(x = long, y = lat, group = group), fill="powderblue",
-                          color = 'black', size = .25)
+        # p<-p+geom_polygon(data = goc, 
+        #                   aes(x = long, y = lat, group = group), fill="powderblue",
+        #                   color = 'black', size = .25)
+        
+        p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+          coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
         
         # write out file
         png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip.png"),
@@ -348,7 +374,7 @@ for(l in 2023:2023){
         plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip.png"))
         # And bring in a logo
         #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-        logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+        logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
         logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # Stack them on top of each other
         #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -427,7 +453,7 @@ for(l in 2023:2023){
         # plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/avg_",stateAbb[k],"_total_precip2.jpg"))
         # # And bring in a logo
         # #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-        # logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+        # logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
         # logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # # Stack them on top of each other
         # #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -450,15 +476,20 @@ for(l in 2023:2023){
         #precBreaksmin<-seq(1,19,2)
         precLabs<-c("0.01-0.5","0.5-1","1-1.5","1.5-2","2-3","3-4","4-5","5-6","6-8","8-10","10-12","12-15",">15","NA")
         
+        # Convert raster to dataframe for ggplot
+        prec_df <- as.data.frame(totalPrecipAll, xy = TRUE, na.rm = FALSE)
+        colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
         
-        p<-gplot(totalPrecipAll) + geom_tile(aes(fill = cut(value, precBreaks, right=FALSE))) +
+        p <- ggplot() +
+          geom_raster(data = prec_df, aes(x = x, y = y, fill = cut(value, precBreaks, right=FALSE))) +
+        #p<-gplot(totalPrecipAll) + geom_tile(aes(fill = cut(value, precBreaks, right=FALSE))) +
           #scale_fill_gradient2(low = 'white', high = 'blue') +
           #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
           #                     name="inches", limits=c(0,20),oob=squish)+
           scale_fill_manual(values = precipCols, na.value="burlywood4",name="inches",labels=precLabs)+
           #guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
           
-          coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+          #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
           xlab("Longitude") + ylab("Latitude") 
         
         p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -469,13 +500,19 @@ for(l in 2023:2023){
                               "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
           theme(plot.title=element_text(size=14, face = "bold"))
     
+        # p<-p+geom_path(data = states, 
+        #                aes(x = X, y = Y, group = region),
+        #                color = 'black', size = 1)
+        
         p<-p+geom_path(data = all_states2, 
                        aes(x = long, y = lat, group = region),
                        color = 'black', size = 1)
-            
-        p<-p+geom_path(data = tribes_df, 
-                       aes(x = long, y = lat, group = group),
-                       color = 'azure4', size = .25)
+        
+        # p<-p+geom_path(data = tribes_df, 
+        #                aes(x = long, y = lat, group = group),
+        #                color = 'azure4', size = .25)
+        
+        p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
         
         p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                         shape = 20)
@@ -483,9 +520,12 @@ for(l in 2023:2023){
         p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                        size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
         
-        p<-p+geom_polygon(data = goc, 
-                          aes(x = long, y = lat, group = group), fill="powderblue",
-                          color = 'black', size = .25)
+        # p<-p+geom_polygon(data = goc, 
+        #                   aes(x = long, y = lat, group = group), fill="powderblue",
+        #                   color = 'black', size = .25)
+        
+        p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+          coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
         
             # write out file
             png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecipCat.png"),
@@ -499,7 +539,7 @@ for(l in 2023:2023){
             plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecipCat.png"))
             # And bring in a logo
             #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-            logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+            logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
             logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
             # Stack them on top of each other
             #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -520,8 +560,14 @@ for(l in 2023:2023){
         precLabs[1]<-"0"
         #precBreaksmin<-seq(1,19,2)
         
+        # Convert raster to dataframe for ggplot
+        prec_df <- as.data.frame(percPrecip, xy = TRUE, na.rm = FALSE)
+        colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+        
+        p <- ggplot() +
+          geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
         #theme_set(theme_bw())
-        p<-gplot(percPrecip) + geom_tile(aes(fill = value)) +
+        #p<-gplot(percPrecip) + geom_tile(aes(fill = value)) +
           #scale_fill_gradient2(low = 'white', high = 'blue') +
           #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
           #                     name="inches", limits=c(0,20),oob=squish)+
@@ -530,7 +576,7 @@ for(l in 2023:2023){
                                name="% of avg", limits=c(0,400),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
           guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
           
-          coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+          #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
           xlab("Longitude") + ylab("Latitude") 
         
         p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -541,13 +587,19 @@ for(l in 2023:2023){
                               "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
           theme(plot.title=element_text(size=14, face = "bold"))
     
+        # p<-p+geom_path(data = states, 
+        #                aes(x = X, y = Y, group = region),
+        #                color = 'black', size = 1)
+        
         p<-p+geom_path(data = all_states2, 
                        aes(x = long, y = lat, group = region),
                        color = 'black', size = 1)
-            
-        p<-p+geom_path(data = tribes_df, 
-                       aes(x = long, y = lat, group = group),
-                       color = 'azure4', size = .25)
+        
+        # p<-p+geom_path(data = tribes_df, 
+        #                aes(x = long, y = lat, group = group),
+        #                color = 'azure4', size = .25)
+        
+        p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
         
         p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                         shape = 20)
@@ -555,9 +607,12 @@ for(l in 2023:2023){
         p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                        size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
         
-        p<-p+geom_polygon(data = goc, 
-                          aes(x = long, y = lat, group = group), fill="powderblue",
-                          color = 'black', size = .25)
+        # p<-p+geom_polygon(data = goc, 
+        #                   aes(x = long, y = lat, group = group), fill="powderblue",
+        #                   color = 'black', size = .25)
+        
+        p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+          coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
         
             # write out file
             png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercPrecip.png"),
@@ -571,7 +626,7 @@ for(l in 2023:2023){
             plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercPrecip.png"))
             # And bring in a logo
             #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-            logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+            logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
             logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
             # Stack them on top of each other
             #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -590,8 +645,14 @@ for(l in 2023:2023){
           precLabs[1]<-"0"
           #precBreaksmin<-seq(1,19,2)
           
+          # Convert raster to dataframe for ggplot
+          prec_df <- as.data.frame(percRainDays, xy = TRUE, na.rm = FALSE)
+          colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+          
+          p <- ggplot() +
+            geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
           #theme_set(theme_bw())
-          p<-gplot(percRainDays) + geom_tile(aes(fill = value)) +
+          #p<-gplot(percRainDays) + geom_tile(aes(fill = value)) +
             #scale_fill_gradient2(low = 'white', high = 'blue') +
             #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
             #                     name="inches", limits=c(0,20),oob=squish)+
@@ -600,7 +661,7 @@ for(l in 2023:2023){
                                  name="%", limits=c(0,75),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
             guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
             
-            coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+            #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
             xlab("Longitude") + ylab("Latitude") 
           
           p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -611,13 +672,19 @@ for(l in 2023:2023){
                                 "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
             theme(plot.title=element_text(size=14, face = "bold"))
     
+          # p<-p+geom_path(data = states, 
+          #                aes(x = X, y = Y, group = region),
+          #                color = 'black', size = 1)
+          
           p<-p+geom_path(data = all_states2, 
                          aes(x = long, y = lat, group = region),
                          color = 'black', size = 1)
-                
-          p<-p+geom_path(data = tribes_df, 
-                         aes(x = long, y = lat, group = group),
-                         color = 'azure4', size = .25)
+          
+          # p<-p+geom_path(data = tribes_df, 
+          #                aes(x = long, y = lat, group = group),
+          #                color = 'azure4', size = .25)
+          
+          p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
           
           p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                           shape = 20)
@@ -625,9 +692,13 @@ for(l in 2023:2023){
           p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                          size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
           
-          p<-p+geom_polygon(data = goc, 
-                            aes(x = long, y = lat, group = group), fill="powderblue",
-                            color = 'black', size = .25)
+          # p<-p+geom_polygon(data = goc, 
+          #                   aes(x = long, y = lat, group = group), fill="powderblue",
+          #                   color = 'black', size = .25)
+          
+          p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+            coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)
+          
           
               # write out file
               png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercentDays.png"),
@@ -641,7 +712,7 @@ for(l in 2023:2023){
               plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercentDays.png"))
               # And bring in a logo
               #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-              logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+              logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
               logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
               # Stack them on top of each other
               #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -661,8 +732,15 @@ for(l in 2023:2023){
           precLabs[1]<-"0"
           #precBreaksmin<-seq(1,19,2)
           
+          
+          # Convert raster to dataframe for ggplot
+          prec_df <- as.data.frame(sdii, xy = TRUE, na.rm = FALSE)
+          colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+          
+          p <- ggplot() +
+            geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
           #theme_set(theme_bw())
-          p<-gplot(sdii) + geom_tile(aes(fill = value)) +
+          #p<-gplot(sdii) + geom_tile(aes(fill = value)) +
             #scale_fill_gradient2(low = 'white', high = 'blue') +
             #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
             #                     name="inches", limits=c(0,20),oob=squish)+
@@ -671,7 +749,7 @@ for(l in 2023:2023){
                                  name="in/day", limits=c(0,1.5),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
             guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
             
-            coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+            #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
             xlab("Longitude") + ylab("Latitude") 
           
           p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -681,14 +759,20 @@ for(l in 2023:2023){
             labs(caption=paste0("Plot created: ",format(Sys.time(), "%Y-%m-%d"),
                                 "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
             theme(plot.title=element_text(size=14, face = "bold"))
-     
+
+          # p<-p+geom_path(data = states, 
+          #                aes(x = X, y = Y, group = region),
+          #                color = 'black', size = 1)
+          
           p<-p+geom_path(data = all_states2, 
                          aes(x = long, y = lat, group = region),
                          color = 'black', size = 1)
-               
-          p<-p+geom_path(data = tribes_df, 
-                         aes(x = long, y = lat, group = group),
-                         color = 'azure4', size = .25)
+          
+          # p<-p+geom_path(data = tribes_df, 
+          #                aes(x = long, y = lat, group = group),
+          #                color = 'azure4', size = .25)
+          
+          p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
           
           p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                           shape = 20)
@@ -696,10 +780,13 @@ for(l in 2023:2023){
           p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                          size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
           
-          p<-p+geom_polygon(data = goc, 
-                            aes(x = long, y = lat, group = group), fill="powderblue",
-                            color = 'black', size = .25)
+          # p<-p+geom_polygon(data = goc, 
+          #                   aes(x = long, y = lat, group = group), fill="powderblue",
+          #                   color = 'black', size = .25)
           
+          p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+            coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)               
+        
               # write out file
               png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_IntensityIndex.png"),
                   width = 8, height = 8, units = "in", res = 300L)
@@ -712,7 +799,7 @@ for(l in 2023:2023){
               plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_IntensityIndex.png"))
               # And bring in a logo
               #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-              logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+              logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
               logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
               # Stack them on top of each other
               #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -734,7 +821,13 @@ for(l in 2023:2023){
           
           #theme_set(theme_bw())
           
-          p<-gplot(maxRain) + geom_tile(aes(fill = value)) +
+          # Convert raster to dataframe for ggplot
+          prec_df <- as.data.frame(maxRain, xy = TRUE, na.rm = FALSE)
+          colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+          
+          p <- ggplot() +
+            geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+          #p<-gplot(maxRain) + geom_tile(aes(fill = value)) +
             #scale_fill_gradient2(low = 'white', high = 'blue') +
             #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
             #                     name="inches", limits=c(0,20),oob=squish)+
@@ -743,7 +836,7 @@ for(l in 2023:2023){
                                  name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
             guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
             
-            coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+            #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
             xlab("Longitude") + ylab("Latitude") 
           
           p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -754,13 +847,19 @@ for(l in 2023:2023){
                                 "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
             theme(plot.title=element_text(size=14, face = "bold"))
     
+          # p<-p+geom_path(data = states, 
+          #                aes(x = X, y = Y, group = region),
+          #                color = 'black', size = 1)
+          
           p<-p+geom_path(data = all_states2, 
                          aes(x = long, y = lat, group = region),
                          color = 'black', size = 1)
-                
-          p<-p+geom_path(data = tribes_df, 
-                         aes(x = long, y = lat, group = group),
-                         color = 'azure4', size = .25)
+          
+          # p<-p+geom_path(data = tribes_df, 
+          #                aes(x = long, y = lat, group = group),
+          #                color = 'azure4', size = .25)
+          
+          p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
           
           p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                           shape = 20)
@@ -768,9 +867,13 @@ for(l in 2023:2023){
           p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                          size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
           
-          p<-p+geom_polygon(data = goc, 
-                            aes(x = long, y = lat, group = group), fill="powderblue",
-                            color = 'black', size = .25)
+          # p<-p+geom_polygon(data = goc, 
+          #                   aes(x = long, y = lat, group = group), fill="powderblue",
+          #                   color = 'black', size = .25)
+          
+          p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+            coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)      
+          
           
               # write out file
               png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip.png"),
@@ -784,7 +887,7 @@ for(l in 2023:2023){
               plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip.png"))
               # And bring in a logo
               #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-              logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+              logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
               logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
               # Stack them on top of each other
               #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -806,7 +909,13 @@ for(l in 2023:2023){
           
           #theme_set(theme_bw())
           
-          p<-gplot(daysSince) + geom_tile(aes(fill = value)) +
+          # Convert raster to dataframe for ggplot
+          prec_df <- as.data.frame(daysSince, xy = TRUE, na.rm = FALSE)
+          colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+          
+          p <- ggplot() +
+            geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+          #p<-gplot(daysSince) + geom_tile(aes(fill = value)) +
             #scale_fill_gradient2(low = 'white', high = 'blue') +
             #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
             #                     name="inches", limits=c(0,20),oob=squish)+
@@ -815,7 +924,7 @@ for(l in 2023:2023){
                                  name="days", limits=c(0,30),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
             guides(fill= guide_colorbar(barheight=15,nbin = 30, raster = FALSE))+
             
-            coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+            #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
             xlab("Longitude") + ylab("Latitude") 
           
           p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -826,13 +935,19 @@ for(l in 2023:2023){
                                 "\nThe University of Arizona\nhttps://cals.arizona.edu/climate/\nData Source: NOAA MPE Analysis\nhttps://water.weather.gov/precip/"))+
             theme(plot.title=element_text(size=14, face = "bold"))
     
+          # p<-p+geom_path(data = states, 
+          #                aes(x = X, y = Y, group = region),
+          #                color = 'black', size = 1)
+          
           p<-p+geom_path(data = all_states2, 
                          aes(x = long, y = lat, group = region),
                          color = 'black', size = 1)
-                
-          p<-p+geom_path(data = tribes_df, 
-                         aes(x = long, y = lat, group = group),
-                         color = 'azure4', size = .25)
+          
+          # p<-p+geom_path(data = tribes_df, 
+          #                aes(x = long, y = lat, group = group),
+          #                color = 'azure4', size = .25)
+          
+          p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
           
           p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                           shape = 20)
@@ -840,9 +955,12 @@ for(l in 2023:2023){
           p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                          size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
           
-          p<-p+geom_polygon(data = goc, 
-                            aes(x = long, y = lat, group = group), fill="powderblue",
-                            color = 'black', size = .25)
+          # p<-p+geom_polygon(data = goc, 
+          #                   aes(x = long, y = lat, group = group), fill="powderblue",
+          #                   color = 'black', size = .25)
+          
+          p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+            coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)      
           
               # write out file
               png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_DaysSince.png"),
@@ -856,7 +974,7 @@ for(l in 2023:2023){
               plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_DaysSince.png"))
               # And bring in a logo
               #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-              logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+              logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
               logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
               # Stack them on top of each other
               #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -878,7 +996,13 @@ for(l in 2023:2023){
           
           #theme_set(theme_bw())
           
-          p<-gplot(gridStack[[max(nlayers(gridStack))]]) + geom_tile(aes(fill = value)) +
+          # Convert raster to dataframe for ggplot
+          prec_df <- as.data.frame(gridStack[[max(nlayers(gridStack))]], xy = TRUE, na.rm = FALSE)
+          colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+          
+          p <- ggplot() +
+            geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+          #p<-gplot(gridStack[[max(nlayers(gridStack))]]) + geom_tile(aes(fill = value)) +
             #scale_fill_gradient2(low = 'white', high = 'blue') +
             #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
             #                     name="inches", limits=c(0,20),oob=squish)+
@@ -887,7 +1011,7 @@ for(l in 2023:2023){
                                  name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
             guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
             
-            coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+            #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
             xlab("Longitude") + ylab("Latitude") 
           
           p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -899,13 +1023,19 @@ for(l in 2023:2023){
             theme(plot.title=element_text(size=14, face = "bold"),
                   panel.background = element_rect(fill = "powderblue"))
     
+          # p<-p+geom_path(data = states, 
+          #                aes(x = X, y = Y, group = region),
+          #                color = 'black', size = 1)
+          
           p<-p+geom_path(data = all_states2, 
                          aes(x = long, y = lat, group = region),
                          color = 'black', size = 1)
-                
-          p<-p+geom_path(data = tribes_df, 
-                         aes(x = long, y = lat, group = group),
-                         color = 'azure4', size = .25)
+          
+          # p<-p+geom_path(data = tribes_df, 
+          #                aes(x = long, y = lat, group = group),
+          #                color = 'azure4', size = .25)
+          
+          p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
           
           p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                           shape = 20)
@@ -913,10 +1043,13 @@ for(l in 2023:2023){
           p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                          size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
           
-          p<-p+geom_polygon(data = goc, 
-                            aes(x = long, y = lat, group = group), fill="powderblue",
-                            color = 'black', size = .25)
+          # p<-p+geom_polygon(data = goc, 
+          #                   aes(x = long, y = lat, group = group), fill="powderblue",
+          #                   color = 'black', size = .25)
           
+          p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+            coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)    
+
               # write out file
               png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_LatestDay.png"),
                   width = 8, height = 8, units = "in", res = 300L)
@@ -929,7 +1062,7 @@ for(l in 2023:2023){
               plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_LatestDay.png"))
               # And bring in a logo
               #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-              logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+              logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
               logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
               # Stack them on top of each other
               #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -951,16 +1084,31 @@ for(l in 2023:2023){
           
           #theme_set(theme_bw())
           names(gridStack)<-format(allDates, format="%b-%d")
-          p<-gplot(gridStack) + geom_tile(aes(fill = value)) +
+          
+          # Convert raster to dataframe for ggplot
+          prec_df <- as.data.frame(gridStack, xy = TRUE, na.rm = FALSE)
+          # convert to long format
+          prec_df <- prec_df %>%
+            pivot_longer(
+              cols = starts_with("Jun."),
+              names_to = "date",
+              values_to = "value"
+            )
+          
+          #colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+          
+          p <- ggplot() +
+            geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+          #p<-gplot(gridStack) + geom_tile(aes(fill = value)) +
             #scale_fill_gradient2(low = 'white', high = 'blue') +
             #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
             #                     name="inches", limits=c(0,20),oob=squish)+
-            facet_wrap(~ variable) +
+            facet_wrap(~ date) +
             scale_fill_gradientn(colours = precipCols, na.value="burlywood4", 
                                  name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
             guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
             
-            coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+            #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
             xlab("Longitude") + ylab("Latitude") 
             
           p<-p +  geom_polygon( data=states, aes(x=X, y=Y, group = PID),colour="grey8", fill=NA, size=0.3 )+
@@ -983,9 +1131,8 @@ for(l in 2023:2023){
           #                aes(x = long, y = lat, group = region),
           #                color = 'black', size = 1)
               
-           p<-p+geom_polygon(data = goc, 
-                            aes(x = long, y = lat, group = group), fill="powderblue",
-                            color = 'black', size = .25)
+          p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+            coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)   
           
               # write out file
               png(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_AllDaysGrid.png"),
@@ -999,7 +1146,7 @@ for(l in 2023:2023){
               plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/",stateAbb[k],"_Monsoon_AllDaysGrid.png"))
               # And bring in a logo
               #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-              logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+              logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
               logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
               # Stack them on top of each other
               #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1033,9 +1180,18 @@ for(l in 2023:2023){
           # make daily directory
           dir.create(paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/daily_",stateAbb[k]),showWarnings = FALSE)
           
+          gc()
+          
           # loop through days, change j to 1
           for(i in 1:length(allDates)){
-            p<-gplot(gridStack[[i]]) + geom_tile(aes(fill = value)) +
+            
+            # Convert raster to dataframe for ggplot
+            prec_df <- as.data.frame(gridStack[[i]], xy = TRUE, na.rm = FALSE)
+            colnames(prec_df) <- c("x", "y", "value")  # Adjust if needed
+            
+            p <- ggplot() +
+              geom_raster(data = prec_df, aes(x = x, y = y, fill = value)) +
+            #p<-gplot(gridStack[[i]]) + geom_tile(aes(fill = value)) +
               #scale_fill_gradient2(low = 'white', high = 'blue') +
               #scale_fill_distiller(palette = "Spectral", direction = -1, na.value="darkgoldenrod", 
               #                     name="inches", limits=c(0,20),oob=squish)+
@@ -1044,7 +1200,7 @@ for(l in 2023:2023){
                                    name="inches", limits=c(0,6),oob=squish, breaks=precBreaks, labels=precLabs, expand=NULL)+
               guides(fill= guide_colorbar(barheight=15,nbin = 500, raster = FALSE))+
               
-              coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
+              #coord_equal(xlim = xlim, ylim = ylim, expand = FALSE)+
               xlab("Longitude") + ylab("Latitude") 
             
             p<-p +  geom_polygon( data=all_states, aes(x=X, y=Y, group = PID),colour="black", fill=NA, size=0.25 )+
@@ -1056,13 +1212,19 @@ for(l in 2023:2023){
               theme(plot.title=element_text(size=14, face = "bold"),
                     panel.background = element_rect(fill = "powderblue"))
       
+            # p<-p+geom_path(data = states, 
+            #                aes(x = X, y = Y, group = region),
+            #                color = 'black', size = 1)
+            
             p<-p+geom_path(data = all_states2, 
                            aes(x = long, y = lat, group = region),
                            color = 'black', size = 1)
-                  
-            p<-p+geom_path(data = tribes_df, 
-                           aes(x = long, y = lat, group = group),
-                           color = 'azure4', size = .25)
+            
+            # p<-p+geom_path(data = tribes_df, 
+            #                aes(x = long, y = lat, group = group),
+            #                color = 'azure4', size = .25)
+            
+            p<-p+geom_sf(data = tribes, fill = NA, color = 'azure4', size = .25)
             
             p<-p+geom_point(data = SWCities, aes(x = lon, y = lat), size = 1, 
                             shape = 20)
@@ -1070,13 +1232,16 @@ for(l in 2023:2023){
             p<-p+geom_text(data = SWCities, aes(x = lon, y = lat, label = City), 
                            size = 3, col = "black", fontface = "bold", nudge_y = 0.1)
             
-            p<-p+geom_polygon(data = goc, 
-                              aes(x = long, y = lat, group = group), fill="powderblue",
-                              color = 'black', size = .25)
+            # p<-p+geom_polygon(data = goc, 
+            #                   aes(x = long, y = lat, group = group), fill="powderblue",
+            #                   color = 'black', size = .25)
+            
+            p<-p+geom_sf(data = goc, fill = "powderblue", color = 'black', size = .25)+
+              coord_sf(xlim = xlim, ylim = ylim, expand = FALSE)  
             
             # write out file
             dayFileName<-paste0("/home/crimmins/RProjects/StateMonsoonMaps/historic/",currYR,"/",stateAbb[k],"/daily_",stateAbb[k],"/",stateAbb[k],"_Monsoon_Precip_",allDates[i],".png")
-            png(dayFileName, width = 8, height = 8, units = "in", res = 300L)
+            png(dayFileName, width = 8, height = 8, units = "in", res = 150L)
             #grid.newpage()
             print(p, newpage = FALSE)
             dev.off()
@@ -1086,7 +1251,7 @@ for(l in 2023:2023){
             plot <- image_read(dayFileName)
             # And bring in a logo
             #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-            logo_raw <- image_read("/home/crimmins/RProjects/ClimPlot/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
+            logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
             logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
             # Stack them on top of each other
             #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1094,12 +1259,15 @@ for(l in 2023:2023){
             final_plot <- image_composite(plot, logo, offset = "+110+2150")
             # And overwrite the plot without a logo
             image_write(final_plot, dayFileName)
+            
+            gc()
           }
     
           
           # RMARKDOWN of DAILIES ----
           # DEAL WITH PANDOC ERROR
-          Sys.setenv(RSTUDIO_PANDOC="/usr/lib/rstudio-server/bin/pandoc")
+          #Sys.setenv(RSTUDIO_PANDOC="/usr/lib/rstudio-server/bin/pandoc")
+          Sys.setenv(RSTUDIO_PANDOC="/usr/bin/pandoc")
           
           # create Rmarkdown html of daily maps
          
@@ -1125,6 +1293,6 @@ for(l in 2023:2023){
 }      
   
 # push bullet notify
-  source('/home/crimmins/RProjects/StateMonsoonMaps/pushNotify.R')
+#  source('/home/crimmins/RProjects/StateMonsoonMaps/pushNotify.R')
   
 # rsync script
