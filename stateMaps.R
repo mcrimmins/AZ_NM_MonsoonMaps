@@ -258,7 +258,7 @@ for(k in 1:2){
     # Call back the plot
     plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_Anomaly_TS.png"))
     # And bring in a logo
-    logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+    logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
     logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
     # Stack them on top of each other
     #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -362,7 +362,7 @@ for(k in 1:2){
     plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip.png"))
     # And bring in a logo
     #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-    logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+    logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
     logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
     # Stack them on top of each other
     #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -434,7 +434,7 @@ for(k in 1:2){
     plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecip_v.png"))
     # And bring in a logo
     #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-    logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+    logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
     logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
     # Stack them on top of each other
     #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -528,7 +528,7 @@ for(k in 1:2){
         plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_TotalPrecipCat.png"))
         # And bring in a logo
         #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-        logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+        logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
         logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # Stack them on top of each other
         #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -615,7 +615,7 @@ for(k in 1:2){
         plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercPrecip.png"))
         # And bring in a logo
         #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-        logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+        logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
         logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # Stack them on top of each other
         #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -700,7 +700,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_PercentDays.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -786,7 +786,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_IntensityIndex.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -871,7 +871,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -961,7 +961,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_MaxPrecip_v.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1047,7 +1047,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_DaysSince.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1133,7 +1133,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_LatestDay.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1215,7 +1215,7 @@ for(k in 1:2){
           plot <- image_read(paste0("/home/crimmins/RProjects/StateMonsoonMaps/maps/",stateAbb[k],"/",stateAbb[k],"_Monsoon_AllDaysGrid.png"))
           # And bring in a logo
           #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-          logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+          logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
           logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
           # Stack them on top of each other
           #final_plot <- image_append((c(plot, logo)), stack = TRUE)
@@ -1316,7 +1316,7 @@ for(k in 1:2){
         plot <- image_read(dayFileName)
         # And bring in a logo
         #logo_raw <- image_read("./logos/UA_CLIMAS_logos.png")
-        logo_raw <- image_read("/home/crimmins/RProjects/StateMonsoonMaps/UA_CSAP_CLIMAS_logos_horiz.png") 
+        logo_raw <- image_read("/home/crimmins/RProjects/logos/UA_CSAP_CLIMAS_logos_horiz.png") 
         logo <- image_resize(logo_raw, geometry_size_percent(width=120,height = 120))
         # Stack them on top of each other
         #final_plot <- image_append((c(plot, logo)), stack = TRUE)
