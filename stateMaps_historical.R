@@ -1090,7 +1090,8 @@ for(l in 2024:2024){
           # convert to long format
           prec_df <- prec_df %>%
             pivot_longer(
-              cols = starts_with("Jun."),
+              #cols = starts_with("Jun."),
+              cols = matches("^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\."),
               names_to = "date",
               values_to = "value"
             )

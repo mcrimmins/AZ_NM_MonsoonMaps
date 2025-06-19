@@ -46,16 +46,16 @@ file.remove(f)
 #dateRangeEnd="2019-09-30"
 
 # auto date range...start with 6-15 and run on 6-17 to get two days of data, end on 10/1
-dateRangeStart="2024-06-15"
-dateRangeEnd="2024-09-30" ### SET FOR TESTING
+#dateRangeStart="2024-06-15"
+#dateRangeEnd="2024-09-30" ### SET FOR TESTING
 
-# # AUTOMATIC ESCAPE OUTSIDE OF OFFICIAL MONSOON SEASON
- # dateRangeStart=as.Date(paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-15"))
- # dateRangeEnd=as.Date(format(as.POSIXct(Sys.time()),usetz=TRUE, tz="America/Phoenix")) # date on local time zone
- # if(dateRangeEnd<paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-16") | dateRangeEnd>=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-10-01")){
- #   stop()
- # }
-# ####
+# AUTOMATIC ESCAPE OUTSIDE OF OFFICIAL MONSOON SEASON
+dateRangeStart=as.Date(paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-15"))
+dateRangeEnd=as.Date(format(as.POSIXct(Sys.time()),usetz=TRUE, tz="America/Phoenix")) # date on local time zone
+if(dateRangeEnd<paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-06-16") | dateRangeEnd>=paste0(format(as.POSIXct(Sys.Date()),"%Y"),"-10-01")){
+  stop()
+}
+####
 
 
 # generate dates -- keep with PRISM date
@@ -1161,7 +1161,8 @@ for(k in 1:2){
       # convert to long format
       prec_df <- prec_df %>%
         pivot_longer(
-          cols = starts_with("Jun."),
+          #cols = starts_with("Jun."),
+          cols = matches("^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\."),
           names_to = "date",
           values_to = "value"
         )
