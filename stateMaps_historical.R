@@ -35,7 +35,7 @@ library(sf)
 library(tidyr)
 library(dplyr)
 
-for(l in 2024:2024){
+for(l in 2025:2025){
 
 
     # clean out netcdf dir
