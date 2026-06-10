@@ -45,8 +45,8 @@ file.remove(f)
 
 ## ---- download PRISM data ----
 # Manually set universal date range - ACIS PRISM current day-1, correct for LINUX UTC time
-dateRangeStart="2025-06-15"
-dateRangeEnd="2025-07-15"
+# dateRangeStart="2025-06-15"
+# dateRangeEnd="2025-09-30"
 
 # auto date range...start with 6-15 and run on 6-17 to get two days of data, end on 10/1
 #dateRangeStart="2024-06-15"
