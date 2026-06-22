@@ -196,21 +196,24 @@ for(k in 1:2){
     daysSince[daysSince < 0] <- NA
     daysSince[daysSince==Inf] <- NA
     
-
-
-    # longest dry spell since June 15 using 0.05" event threshold
-    # gridStack has non-positive precip set to NA, so dry days are !wet
+    # longest dry spell after first 0.05" rain event
+    # cells with no >=0.05" event yet this season are left as NA
     longestDrySpell <- calc(gridStack, fun=function(x){
       wet <- !is.na(x) & x >= 0.05
-      dry <- !wet
-      r <- rle(dry)
+      # no rain yet this season: leave unmapped
+      if(!any(wet)) {
+        return(NA)
+      }
+      # only begin counting dry spells after first rain event
+      first_wet <- min(which(wet))
+      dry_after_start <- !wet[first_wet:length(wet)]
+      r <- rle(dry_after_start)
       if(any(r$values)) {
         max(r$lengths[r$values])
       } else {
         0
       }
     })
-    longestDrySpell[longestDrySpell < 0] <- NA
 
     # heavy rain days >= 0.50"
     heavyRainDays050 <- calc(gridStack, fun=function(x){
